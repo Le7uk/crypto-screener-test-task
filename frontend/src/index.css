@@ -86,8 +86,58 @@ th {
 .status {
   color: #9a9ea6;
   padding: 20px 0;
+  text-align: center;
 }
 
 .status.error {
   color: #e06c75;
+}
+
+.result-count {
+  color: #6f747c;
+  font-size: 13px;
+  margin: 0 0 8px;
+  min-height: 16px;
+}
+
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+th.sortable:hover {
+  color: #e8e8e8;
+}
+
+.sort-arrow {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 10px;
+  color: #3a3f4a;
+}
+
+.sort-arrow.active {
+  color: #5b9dff;
+}
+
+.skeleton-row td {
+  padding: 10px 12px;
+}
+
+.skeleton-bar {
+  height: 18px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #1a1d24 25%, #232732 50%, #1a1d24 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }

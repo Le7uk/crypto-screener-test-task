@@ -33,20 +33,19 @@ export default function App() {
       <h1>Crypto Screener</h1>
       <p className="subtitle">Small-cap projects screened for market cap, FDV, volume and TVL.</p>
 
-      <Controls
-        search={search}
-        onSearchChange={setSearch}
-        fdvMax={fdvMax}
-        onFdvMaxChange={setFdvMax}
+      <Controls search={search} onSearchChange={setSearch} fdvMax={fdvMax} onFdvMaxChange={setFdvMax} />
+
+      <ProjectTable
+        projects={projects}
+        loading={loading}
+        error={error}
         sortBy={sortBy}
         sortOrder={sortOrder}
         onSortChange={(nextSortBy, nextSortOrder) => {
           setSortBy(nextSortBy);
-          setSortOrder(nextSortOrder || "desc");
+          setSortOrder(nextSortOrder);
         }}
       />
-
-      <ProjectTable projects={projects} loading={loading} error={error} />
     </main>
   );
 }

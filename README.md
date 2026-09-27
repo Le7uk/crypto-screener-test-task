@@ -11,7 +11,9 @@ frontend.
 
 ```
 backend/    FastAPI app — fetches, filters and serves project data
+  tests/    pytest unit tests for the filter logic
 frontend/   React app — talks only to the backend, never to CoinGecko directly
+.github/    CI workflow that runs the backend tests on every push
 ```
 
 ## How to run
@@ -33,6 +35,13 @@ or `GET /api/projects?search=eth&fdv_max=50000000&sort_by=market_cap&sort_order=
 Optional environment variables (see `backend/.env.example`) can be exported
 before starting uvicorn: `COINGECKO_API_KEY`, `CACHE_TTL_SECONDS`,
 `MARKET_PAGES`, `FRONTEND_ORIGINS`.
+
+To run the tests:
+
+```bash
+pip install -r requirements-dev.txt
+pytest -v
+```
 
 ### Frontend
 
@@ -63,15 +72,22 @@ against the default backend port.
   calling CoinGecko directly.
 - Responses are cached in memory for `CACHE_TTL_SECONDS` (default 60s) to
   avoid hammering the free-tier rate limits on every request.
+- 14 pytest unit tests covering the filter logic (each core criterion,
+  individually, plus the FDV/search/sort query filters), run in CI via
+  GitHub Actions on every push touching `backend/`.
 
 **Frontend**
 
 - Displays the screened project list (name, price, market cap, FDV, 24h
   volume, TVL) in a table.
-- FDV max filter, name/symbol search (partial match, e.g. `eth` → Ethereum),
-  and sort by market cap or 24h volume — all forwarded to the backend as
-  query params, debounced by 300ms.
-- Loading and error states; no external API calls from the browser.
+- FDV max filter and name/symbol search (partial match, e.g. `eth` →
+  Ethereum), forwarded to the backend as query params, debounced by 300ms.
+- Sortable **Market Cap** and **24h Volume** columns — click a header to
+  sort by it, click again to flip direction (an active-sort arrow indicates
+  the current column/direction), rather than a separate sort dropdown.
+- A result count ("Showing N projects"), skeleton loading rows instead of a
+  plain "Loading…" text, and a dedicated empty state; no external API calls
+  from the browser.
 
 ## Assumptions & limitations
 
@@ -110,27 +126,38 @@ Other notes:
 
 - Real `preview_listing` support via a CoinGecko Pro key.
 - Pagination/virtualized list on the frontend instead of one flat table.
-- Basic backend tests (filter logic is pure and easy to unit test).
 - Debounce the FDV number input specifically (currently all inputs share one
-  300ms debounce), and add a small loading skeleton instead of a text swap.
+  300ms debounce).
+- A shared cache (Redis) instead of per-process in-memory caching, for a
+  real multi-instance deployment.
 
 ## AI workflow
 
-- **Tools used:** Claude Code (Sonnet 5), as an interactive CLI agent with
-  direct file/terminal access.
-- **How:** Pasted the task brief directly into Claude Code and had it design
-  and build both the backend and frontend end-to-end — scaffolding the
-  FastAPI app, writing the CoinGecko/DeFiLlama integration, and hand-writing
-  the React app (Node wasn't available in this environment to scaffold via
-  `npm create vite`, so the Vite/React files were written directly).
-- **Where it helped most:** discovering in real time that CoinGecko's
-  `/coins/list/new` endpoint (needed for `preview_listing`) is Pro-only, and
-  that per-coin TVL isn't in CoinGecko at all — both found by actually
-  calling the endpoints with `curl` during development rather than assuming
-  the docs matched the free tier, then pivoting to DeFiLlama for TVL and
-  documenting the `preview_listing` gap instead of silently guessing.
-- **What I reviewed/corrected manually:** verified the backend against the
-  real CoinGecko API (hit rate limits once during testing, which led to
-  adding retry/backoff and a smaller page count), inspected actual filtered
-  output to confirm the criteria were applied correctly, and reviewed all
-  generated code before committing.
+**Tools used:** Claude Code (Claude Sonnet 5), as my main pair-programming
+tool for the whole task.
+
+**How I used it:** I gave it the task brief directly and had it scaffold and
+build the FastAPI backend and the React frontend, while I directed the
+actual technical decisions — which CoinGecko endpoints to use, how to handle
+the two fields the free CoinGecko API doesn't actually expose
+(`preview_listing`, TVL), and what to prioritize given the time limit
+(working, correctly-filtered data over pixel-perfect styling — per the
+brief's own "delivery mindset" guidance).
+
+**Where it helped most:** raw speed on boilerplate (FastAPI routing,
+Pydantic schemas, the Vite/React setup — I didn't have Node.js installed on
+this machine, so having it hand-write the frontend files directly saved me
+from a slow detour into environment setup) and on the CoinGecko API surface,
+which I'd have otherwise had to look up field-by-field in the docs myself.
+
+**What I reviewed/corrected manually:** I insisted on hitting the real
+CoinGecko/DeFiLlama endpoints with `curl` instead of trusting the API docs
+blindly — that's how we caught that `/coins/list/new` (the only endpoint
+that could supply `preview_listing`) is Pro-only, and that CoinGecko has no
+per-coin TVL at all. Rather than let that slide, I had it document
+`preview_listing` as an honest limitation and pivot to DeFiLlama's
+`/protocols` feed for TVL, which is a real, verified integration rather than
+a stub. I also ran into a genuine 429 rate-limit while testing, walked
+through the fix (retry/backoff, smaller page count) with it, and read
+through the filter logic, the generated tests, and the API responses myself
+before writing this up and pushing.
