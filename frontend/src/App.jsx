@@ -38,6 +38,7 @@ export default function App() {
         onSearchChange={setSearch}
         fdvMax={fdvMax}
         onFdvMaxChange={setFdvMax}
+        sortBy={sortBy}
         onReset={() => {
           setSearch("");
           setFdvMax("");

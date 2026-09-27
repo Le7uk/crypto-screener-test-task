@@ -1,5 +1,5 @@
-export default function Controls({ search, onSearchChange, fdvMax, onFdvMaxChange, onReset }) {
-  const hasActiveFilters = search !== "" || fdvMax !== "";
+export default function Controls({ search, onSearchChange, fdvMax, onFdvMaxChange, sortBy, onReset }) {
+  const hasActiveFilters = search !== "" || fdvMax !== "" || sortBy !== "";
 
   return (
     <div className="controls">
