@@ -50,6 +50,33 @@ h1 {
   width: 160px;
 }
 
+.reset-button {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background: #1a1d24;
+  color: #e8e8e8;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.reset-button:hover:not(:disabled) {
+  border-color: #5b9dff;
+  color: #5b9dff;
+}
+
+.reset-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+footer {
+  margin-top: 24px;
+  color: #4a4e57;
+  font-size: 12px;
+  text-align: center;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

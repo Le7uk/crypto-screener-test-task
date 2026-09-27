@@ -1,4 +1,6 @@
-export default function Controls({ search, onSearchChange, fdvMax, onFdvMaxChange }) {
+export default function Controls({ search, onSearchChange, fdvMax, onFdvMaxChange, onReset }) {
+  const hasActiveFilters = search !== "" || fdvMax !== "";
+
   return (
     <div className="controls">
       <input
@@ -15,6 +17,10 @@ export default function Controls({ search, onSearchChange, fdvMax, onFdvMaxChang
         value={fdvMax}
         onChange={(e) => onFdvMaxChange(e.target.value)}
       />
+
+      <button type="button" className="reset-button" onClick={onReset} disabled={!hasActiveFilters}>
+        Reset
+      </button>
     </div>
   );
 }

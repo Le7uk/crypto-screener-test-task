@@ -33,7 +33,18 @@ export default function App() {
       <h1>Crypto Screener</h1>
       <p className="subtitle">Small-cap projects screened for market cap, FDV, volume and TVL.</p>
 
-      <Controls search={search} onSearchChange={setSearch} fdvMax={fdvMax} onFdvMaxChange={setFdvMax} />
+      <Controls
+        search={search}
+        onSearchChange={setSearch}
+        fdvMax={fdvMax}
+        onFdvMaxChange={setFdvMax}
+        onReset={() => {
+          setSearch("");
+          setFdvMax("");
+          setSortBy("");
+          setSortOrder("desc");
+        }}
+      />
 
       <ProjectTable
         projects={projects}
@@ -46,6 +57,8 @@ export default function App() {
           setSortOrder(nextSortOrder);
         }}
       />
+
+      <footer>Data via CoinGecko and DeFiLlama.</footer>
     </main>
   );
 }

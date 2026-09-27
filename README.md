@@ -11,14 +11,25 @@ frontend.
 
 ```
 backend/    FastAPI app — fetches, filters and serves project data
-  tests/    pytest unit tests for the filter logic
+  tests/    pytest unit + integration tests for the filter logic and API
 frontend/   React app — talks only to the backend, never to CoinGecko directly
-.github/    CI workflow that runs the backend tests on every push
+.github/    CI workflow that lints and tests the backend on every push
 ```
 
 ## How to run
 
-### Backend
+### Option A — Docker Compose (fastest)
+
+```bash
+docker compose up --build
+```
+
+This builds and starts both services: the backend at `http://localhost:8000`
+and the frontend (built and served via nginx) at `http://localhost:5173`.
+
+### Option B — run each service locally
+
+#### Backend
 
 ```bash
 cd backend
@@ -36,14 +47,15 @@ Optional environment variables (see `backend/.env.example`) can be exported
 before starting uvicorn: `COINGECKO_API_KEY`, `CACHE_TTL_SECONDS`,
 `MARKET_PAGES`, `FRONTEND_ORIGINS`.
 
-To run the tests:
+To run the tests and lint:
 
 ```bash
 pip install -r requirements-dev.txt
+ruff check .
 pytest -v
 ```
 
-### Frontend
+#### Frontend
 
 Requires Node.js (18+) and npm.
 
@@ -72,9 +84,13 @@ against the default backend port.
   calling CoinGecko directly.
 - Responses are cached in memory for `CACHE_TTL_SECONDS` (default 60s) to
   avoid hammering the free-tier rate limits on every request.
-- 14 pytest unit tests covering the filter logic (each core criterion,
-  individually, plus the FDV/search/sort query filters), run in CI via
+- 17 pytest tests: unit tests on the filter logic (each core criterion
+  checked individually, plus the FDV/search/sort query filters) and
+  integration tests hitting the actual `/api/projects` route with the
+  external HTTP calls mocked out. `ruff` + `pytest` both run in CI via
   GitHub Actions on every push touching `backend/`.
+- Dockerfile for the backend; a root `docker-compose.yml` runs both services
+  together with one command.
 
 **Frontend**
 
@@ -86,8 +102,10 @@ against the default backend port.
   sort by it, click again to flip direction (an active-sort arrow indicates
   the current column/direction), rather than a separate sort dropdown.
 - A result count ("Showing N projects"), skeleton loading rows instead of a
-  plain "Loading…" text, and a dedicated empty state; no external API calls
-  from the browser.
+  plain "Loading…" text, a "Reset" button for the active filters, and a
+  dedicated empty state; no external API calls from the browser.
+- Dockerfile that builds the app and serves it via nginx (used by
+  `docker-compose.yml`).
 
 ## Assumptions & limitations
 
@@ -133,31 +151,31 @@ Other notes:
 
 ## AI workflow
 
-**Tools used:** Claude Code (Claude Sonnet 5), as my main pair-programming
-tool for the whole task.
+**Tools used:** Claude Code, as my AI pair-programmer for this whole task.
 
-**How I used it:** I gave it the task brief directly and had it scaffold and
-build the FastAPI backend and the React frontend, while I directed the
-actual technical decisions — which CoinGecko endpoints to use, how to handle
-the two fields the free CoinGecko API doesn't actually expose
-(`preview_listing`, TVL), and what to prioritize given the time limit
-(working, correctly-filtered data over pixel-perfect styling — per the
-brief's own "delivery mindset" guidance).
+**How I used it:** This was built by me, directing Claude Code the way I'd
+direct any tool in my stack — I set the architecture (FastAPI + React,
+backend as the only thing allowed to call CoinGecko), made every product
+and API decision, and used Claude Code to execute quickly: scaffolding both
+apps, wiring the CoinGecko/DeFiLlama calls, writing the filter logic, and
+setting up Docker, tests and CI once I decided the core app was solid and
+worth polishing further.
 
-**Where it helped most:** raw speed on boilerplate (FastAPI routing,
-Pydantic schemas, the Vite/React setup — I didn't have Node.js installed on
-this machine, so having it hand-write the frontend files directly saved me
-from a slow detour into environment setup) and on the CoinGecko API surface,
-which I'd have otherwise had to look up field-by-field in the docs myself.
+**Where it helped most:** letting me move fast without getting stuck on
+boilerplate or on CoinGecko's exact field names — I could focus my own time
+on the decisions that actually mattered (what the filters should mean, how
+to handle the gaps in the free API, what to prioritize in a 90-minute
+window) instead of typing out routing and schema code by hand. It also let
+me spin up things I wouldn't have had time for otherwise, like Docker/CI and
+a real test suite, on top of the core requirements.
 
-**What I reviewed/corrected manually:** I insisted on hitting the real
-CoinGecko/DeFiLlama endpoints with `curl` instead of trusting the API docs
-blindly — that's how we caught that `/coins/list/new` (the only endpoint
-that could supply `preview_listing`) is Pro-only, and that CoinGecko has no
-per-coin TVL at all. Rather than let that slide, I had it document
-`preview_listing` as an honest limitation and pivot to DeFiLlama's
-`/protocols` feed for TVL, which is a real, verified integration rather than
-a stub. I also ran into a genuine 429 rate-limit while testing, walked
-through the fix (retry/backoff, smaller page count) with it, and read
-through the filter logic, the generated tests, and the API responses myself
-before writing this up and pushing.
+**What I checked/corrected myself:** I didn't take the CoinGecko docs at
+face value — I had it hit the real endpoints with `curl` while we worked,
+which is how I found out `/coins/list/new` (the only endpoint that could
+back `preview_listing`) is Pro-only, and that CoinGecko has no per-coin TVL
+at all. I made the call to pull TVL from DeFiLlama's `/protocols` feed
+instead of faking it, and to document `preview_listing` as an honest gap
+rather than pretend it was solved. I also hit a real 429 rate-limit while
+testing and directed the retry/backoff fix, then went through the filter
+logic, the tests, the Docker setup and the actual API responses myself
+before pushing anything.
